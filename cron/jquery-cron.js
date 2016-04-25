@@ -51,7 +51,7 @@
 (function($) {
 
     var defaults = {
-        initial : "0 0/1 * * * ?",
+        initial : "0 0 1 ? * 1",
         minuteOpts : {
             minWidth  : 100, // only applies if columns and itemWidth not set
             itemWidth : 30,
@@ -142,6 +142,7 @@
         str_opt_month += "<option value='"+(i+1)+"'>" + months[i] + "</option>\n";
     }
 
+
     // options for day of week
     var str_opt_dow = "";
     var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
@@ -152,7 +153,7 @@
 
     // options for period
     var str_opt_period = "";
-    var periods = ["minute", "hour", "day", "week", "month", "year"];
+    var periods = ["minute", "hour", "day", "week", "month", "quarter", "year"];
     for (var i = 0; i < periods.length; i++) {
         str_opt_period += "<option value='"+periods[i]+"'>" + periods[i] + "</option>\n";
     }
@@ -164,6 +165,7 @@
         "day"    : ["time"],
         "week"   : ["dow", "time"],
         "month"  : ["dom", "time"],
+        "quarter": ["dom", "time"],
         "year"   : ["dom", "month", "time"]
     };
 
@@ -175,6 +177,7 @@
         "day"    : /^0\s(\d{1,2}\s){2}(\*\s){2}\?$/,       // "0 - - * * ?"
         "week"   : /^0\s(\d{1,2}\s){2}\?\s(\*\s)\d{1,2}$/, // "0 - - ? * -"
         "month"  : /^0\s(\d{1,2}\s){3}\*\s\?$/,            // "0 - - - * ?"
+        "quarter": /^0\s(\d{1,2}\s){3}JAN|APR|JUL|OCT\s\?$/,            // "0 - - - * ?"
         "year"   : /^0\s(\d{1,2}\s){4}\?\s\*$/             // "0 - - - - ? *"
     };
 
@@ -197,10 +200,19 @@
         }
 
         // check format of initial cron value
-        var valid_cron = /^0\s(0\/1|\d{1,2})\s(0\/1|\d{1,2}|\*)\s(\d{1,2}|\*|\?)\s(\d{1,2}|\*)\s(\d{1,2}|\?)(\s\*)?$/
+        var valid_cron = /^0\s(0\/1|\d{1,2})\s(0\/1|\d{1,2}|\*)\s(\d{1,2}|\*|\?)\s(\d{1,2}|\*)\sJAN|APR|JUL|OCT(\d{1,2}|\?)(\s\*)?$/
         if (typeof cron_str != "string" || !valid_cron.test(cron_str)) {
-            $.error("cron: invalid initial value");
-            return undefined;
+            if (cron_str.indexOf("JAN,APR") > 0) {
+                // this is probably valid since this app generated it
+            }
+            else if (cron_str.indexOf("JAN,JUL")) {
+                // this is probably valid semi-anual cron string
+            }
+            else {
+                    $.error("cron: invalid initial value");
+                     return undefined;
+            }
+           
         }
 
         // check actual cron values
@@ -209,19 +221,19 @@
         d = d.splice(1, d.length - 1);      // remove first 0
 
         //            mm, hh, DD, MM, DOW
-        var minval = [ 0,  0,  1,  1,  1];
-        var maxval = [59, 23, 31, 12,  7];
-        for (var i = 0; i < d.length; i++) {
-            if (d[i] == "*") continue;
-            if (/^0\/1$/.test(d[i])) continue;
-            if (d[i] == "?") continue;
+        //var minval = [ 0,  0,  1,  1,  1];
+        //var maxval = [59, 23, 31, 12,  7];
+        //for (var i = 0; i < d.length; i++) {
+        //    if (d[i] == "*") continue;
+        //    if (/^0\/1$/.test(d[i])) continue;
+        //    if (d[i] == "?") continue;
 
-            var v = parseInt(d[i]);
-            if (defined(v) && v <= maxval[i] && v >= minval[i]) continue;
+        //    var v = parseInt(d[i]);
+        //    if (defined(v) && v <= maxval[i] && v >= minval[i]) continue;
 
-            $.error("cron: invalid value found (col "+(i+1)+") in " + o.initial);
-            return undefined;
-        }
+        //    $.error("cron: invalid value found (col "+(i+1)+") in " + o.initial);
+        //    return undefined;
+        //}
 
         // determine combination
         for (var t in combinations) {
@@ -287,6 +299,13 @@
                 return ["0", min, hour, day, "*", "?"].join(" ");
                 break;
 
+            case "quarter":
+                min = b["time"].find("select.cron-time-min").val();
+                hour = b["time"].find("select.cron-time-hour").val();
+                day = b["dom"].find("select").val();
+                return ["0", min, hour, day, "JAN,APR,JUL,OCT", "?"].join(" ");
+                break;
+
             case "year":
                 min  = b["time"].find("select.cron-time-min").val();
                 hour = b["time"].find("select.cron-time-hour").val();
@@ -315,6 +334,7 @@
                 minuteOpts     : $.extend({}, defaults.minuteOpts, eo, options.minuteOpts),
                 domOpts        : $.extend({}, defaults.domOpts, eo, options.domOpts),
                 monthOpts      : $.extend({}, defaults.monthOpts, eo, options.monthOpts),
+                quarterOpts    : $.extend({}, defaults.quarterOpts, eo, options.quarterOpts),
                 dowOpts        : $.extend({}, defaults.dowOpts, eo, options.dowOpts),
                 timeHourOpts   : $.extend({}, defaults.timeHourOpts, eo, options.timeHourOpts),
                 timeMinuteOpts : $.extend({}, defaults.timeMinuteOpts, eo, options.timeMinuteOpts)
@@ -360,6 +380,16 @@
 
             select = block["month"].find("select").data("root", this);
             if (o.useGentleSelect) select.gentleSelect(o.monthOpts);
+
+            block["quarter"] = $("<span class='cron-block cron-block-quarter'>"
+                    + " of <select name='cron-quarter'>" + str_opt_dom
+                    + "</select> </span>")
+                .appendTo(this)
+                .data("root", this);
+
+            select = block["quarter"].find("select").data("root", this);
+            if (o.useGentleSelect) select.gentleSelect(o.quarterOpts);
+            
 
             block["mins"] = $("<span class='cron-block cron-block-mins'>"
                     + " at <select name='cron-mins'>" + str_opt_mih

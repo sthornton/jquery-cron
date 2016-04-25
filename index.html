@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+﻿<!DOCTYPE HTML>
 <html>
 <head>
     <meta charset="utf-8">
@@ -29,21 +29,21 @@
     </style>
     <script type="text/javascript">
     $(document).ready(function() {
-        $('#example1').cron({
-            initial: "42 3 * * 5",
+        $('#example1').cron({ 
+            initial: "0 8 5 JAN,APR,JUL,OCT ?",
             onChange: function() {
                 $('#example1-val').text($(this).cron("value"));
             }
         });
         $('#example1b').cron({
-            initial: "42 3 * * 5",
+            initial: "0 0 1 ? * 1",
             onChange: function() {
                 $('#example1b-val').text($(this).cron("value"));
             },
             useGentleSelect: true
         });
         $('#example2').cron({
-            initial: "42 3 * * 5",
+            initial: "0 0 1 ? * 1",
             effectOpts: {
                 openEffect: "fade",
                 openSpeed: "slow"
@@ -51,7 +51,7 @@
             useGentleSelect: true
         });
         $('#example3').cron({
-            initial: "*/5 * * * *",
+            initial: "0 0 1 ? * 1",
             onChange: function() {
                 $('#example3-val').text($(this).cron("value"));
             },
@@ -62,7 +62,7 @@
             useGentleSelect: true
         });
         $('#example4').cron({
-            initial: "42 3 * * 5",
+            initial: "0 0 1 ? * 1",
             onChange: function() {
                 $('#example4-val').text($(this).cron("value"));
             },
