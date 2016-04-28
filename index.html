@@ -29,8 +29,8 @@
     </style>
     <script type="text/javascript">
     $(document).ready(function() {
-        $('#example1').cron({ 
-            initial: "0 8 5 JAN,APR,JUL,OCT ?",
+        $('#example1').cron({
+            initial: "0 0 1 ? * 1",
             onChange: function() {
                 $('#example1-val').text($(this).cron("value"));
             }
@@ -91,9 +91,9 @@
     <div id='example1'></div>
     <p>Generated cron entry: <span class='example-text' id='example1-val'></span></p>
     </div>
-    
+
     Or, with <a href='#option-useGentleSelect'>useGentleSelect</a> enabled:
-    
+
     <div class='example'>
     <div id='example1b'></div>
     <p>Generated cron entry: <span class='example-text' id='example1b-val'></span></p>
