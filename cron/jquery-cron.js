@@ -5,9 +5,9 @@
  * Copyright (c) 2010-2013 Shawn Chin.
  * Dual licensed under the MIT or GPL Version 2 licenses.
  *
- * Modified By Felix Ruponen to use Quartz Cron Format
+ * Modified By Scott Thornton
  *
- * GitHub: https://github.com/felixruponen/jquery-cron 
+ * GitHub: https://github.com/sthornton/jquery-cron
  *
  * More at: http://www.quartz-scheduler.org
  *
@@ -153,32 +153,34 @@
 
     // options for period
     var str_opt_period = "";
-    var periods = ["minute", "hour", "day", "week", "month", "quarter", "year"];
+    var periods = ["minute", "hour", "day", "week", "month", "quarter", "semi-annual", "year"];
     for (var i = 0; i < periods.length; i++) {
         str_opt_period += "<option value='"+periods[i]+"'>" + periods[i] + "</option>\n";
     }
 
     // display matrix
     var toDisplay = {
-        "minute" : [],
-        "hour"   : ["mins"],
-        "day"    : ["time"],
-        "week"   : ["dow", "time"],
-        "month"  : ["dom", "time"],
-        "quarter": ["dom", "time"],
-        "year"   : ["dom", "month", "time"]
+        "minute"        : [],
+        "hour"          : ["mins"],
+        "day"           : ["time"],
+        "week"          : ["dow", "time"],
+        "month"         : ["dom", "time"],
+        "quarter"       : ["dom", "time"],
+        "semi-annual"   : ["dom","time"],
+        "year"          : ["dom", "month", "time"]
     };
 
     var combinations = {
         // Quartz Regex Expressions below                  // "-" indicates digit of one or two numbers that should be replaced with the desired time
 
-        "minute" : /^0\s(0\/1)\s(\*\s){3}\?$/,             // "0 0/1 * * * ?"
-        "hour"   : /^0\s\d{1,2}\s(0\/1)\s(\*\s){2}\?$/,    // "0 - 0/1 * * ?"
-        "day"    : /^0\s(\d{1,2}\s){2}(\*\s){2}\?$/,       // "0 - - * * ?"
-        "week"   : /^0\s(\d{1,2}\s){2}\?\s(\*\s)\d{1,2}$/, // "0 - - ? * -"
-        "month"  : /^0\s(\d{1,2}\s){3}\*\s\?$/,            // "0 - - - * ?"
-        "quarter": /^0\s(\d{1,2}\s){3}JAN|APR|JUL|OCT\s\?$/,            // "0 - - - * ?"
-        "year"   : /^0\s(\d{1,2}\s){4}\?\s\*$/             // "0 - - - - ? *"
+        "minute"        : /^0\s(0\/1)\s(\*\s){3}\?$/,             // "0 0/1 * * * ?"
+        "hour"          : /^0\s\d{1,2}\s(0\/1)\s(\*\s){2}\?$/,    // "0 - 0/1 * * ?"
+        "day"           : /^0\s(\d{1,2}\s){2}(\*\s){2}\?$/,       // "0 - - * * ?"
+        "week"          : /^0\s(\d{1,2}\s){2}\?\s(\*\s)\d{1,2}$/, // "0 - - ? * -"
+        "month"         : /^0\s(\d{1,2}\s){3}\*\s\?$/,            // "0 - - - * ?"
+        "quarter"       : /^0\s(\d{1,2}\s){3}?\bJAN,APR,JUL,OCT\b\s\?/,            // "0 - - - * ?"
+        "semi-annual"   : /^0\s(\d{1,2}\s){3}?\bJAN,JUL\b\s\?/,            // "0 - - - * ?"
+        "year"          : /^0\s(\d{1,2}\s){4}\?\s\*$/             // "0 - - - - ? *"
     };
 
     // ------------------ internal functions ---------------
@@ -200,19 +202,19 @@
         }
 
         // check format of initial cron value
-        var valid_cron = /^0\s(0\/1|\d{1,2})\s(0\/1|\d{1,2}|\*)\s(\d{1,2}|\*|\?)\s(\d{1,2}|\*)\sJAN|APR|JUL|OCT(\d{1,2}|\?)(\s\*)?$/
+        var valid_cron = /^0\s(0\/1|\d{1,2})\s(0\/1|\d{1,2}|\*)\s(\d{1,2}|\*|\?)\s(\d{1,2}|\*|\bJAN,JUL\b|\bJAN,APR,JUL,OCT)\s(\d{1,2}|\?)(\s\*)?$/
         if (typeof cron_str != "string" || !valid_cron.test(cron_str)) {
             if (cron_str.indexOf("JAN,APR") > 0) {
                 // this is probably valid since this app generated it
             }
-            else if (cron_str.indexOf("JAN,JUL")) {
+            else if (cron_str.indexOf("JAN,JUL") > 0) {
                 // this is probably valid semi-anual cron string
             }
             else {
                     $.error("cron: invalid initial value");
                      return undefined;
             }
-           
+
         }
 
         // check actual cron values
@@ -306,6 +308,13 @@
                 return ["0", min, hour, day, "JAN,APR,JUL,OCT", "?"].join(" ");
                 break;
 
+            case "semi-annual":
+                min = b["time"].find("select.cron-time-min").val();
+                hour = b["time"].find("select.cron-time-hour").val();
+                day = b["dom"].find("select").val();
+                return ["0", min, hour, day, "JAN,JUL", "?"].join(" ");
+                break;
+
             case "year":
                 min  = b["time"].find("select.cron-time-min").val();
                 hour = b["time"].find("select.cron-time-hour").val();
@@ -334,7 +343,8 @@
                 minuteOpts     : $.extend({}, defaults.minuteOpts, eo, options.minuteOpts),
                 domOpts        : $.extend({}, defaults.domOpts, eo, options.domOpts),
                 monthOpts      : $.extend({}, defaults.monthOpts, eo, options.monthOpts),
-                quarterOpts    : $.extend({}, defaults.quarterOpts, eo, options.quarterOpts),
+                quarterOpts: $.extend({}, defaults.quarterOpts, eo, options.quarterOpts),
+                semiAnnualOpts: $.extend({}, defaults.semiAnnualOpts, eo, options.semiAnnualOpts),
                 dowOpts        : $.extend({}, defaults.dowOpts, eo, options.dowOpts),
                 timeHourOpts   : $.extend({}, defaults.timeHourOpts, eo, options.timeHourOpts),
                 timeMinuteOpts : $.extend({}, defaults.timeMinuteOpts, eo, options.timeMinuteOpts)
@@ -389,7 +399,15 @@
 
             select = block["quarter"].find("select").data("root", this);
             if (o.useGentleSelect) select.gentleSelect(o.quarterOpts);
-            
+
+            block["semi-annual"] = $("<span class='cron-block cron-block-semi-annual'>"
+                    + " of <select name='cron-semi-annual'>" + str_opt_dom
+                    + "</select> </span>")
+                .appendTo(this)
+                .data("root", this);
+
+            select = block["semi-annual"].find("select").data("root", this);
+            if (o.useGentleSelect) select.gentleSelect(o.semiAnnualOpts);
 
             block["mins"] = $("<span class='cron-block cron-block-mins'>"
                     + " at <select name='cron-mins'>" + str_opt_mih
